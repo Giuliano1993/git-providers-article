@@ -5,8 +5,8 @@ require('dotenv').config()
 const app = express();
 const port = 3000;
 const axios = require('axios').default;
-
-
+const { exec } = require("child_process");
+const fs = require('fs');
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -21,7 +21,45 @@ app.use(express.urlencoded({extended: true}));
 
 //not needed for github and gitlab, only for bitbucket
 
+app.get('/bitbucket/auth', async (req, res) => {
+  const url = `https://bitbucket.org/site/oauth2/authorize?client_id=${process.env.BITBUCKET_KEY}&response_type=code`
+  res.redirect(url);
 
+});
+
+app.get('/bitbucket/get-token',async (req, res)=>{
+  const code = req.query.code;
+
+  //exec("curl -X POST -u $key:$secret https://bitbucket.org/site/oauth2/access_token -d grant_type=authorization_code -d code=$code", $output);
+  try {
+   
+    exec(`curl -X POST -u ${process.env.BITBUCKET_KEY}:${process.env.BITBUCKET_SECRET} https://bitbucket.org/site/oauth2/access_token -d grant_type=authorization_code -d code=${code}`, (error, stdout, stderr) => {
+      if(error) throw error;
+      if(stdout){
+        
+        const data = JSON.parse(stdout);
+
+        const bitbucketAccessData = {
+          token : data.access_token,
+          refresh_token : data.refresh_token,
+        }
+
+        let fileData = fs.readFileSync('./tokens.json');
+        fileData = JSON.parse(fileData)
+        fileData.tokens.bitbucket = bitbucketAccessData;
+        fileData = JSON.stringify(fileData);
+        fs.writeFileSync('./tokens.json', fileData,  (err)=>{
+          console.error(err)
+        })
+        return res.json(data);
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    return res.json(error)
+  }
+  
+})
 
 
 //2 retrieve repositories
