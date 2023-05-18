@@ -68,21 +68,19 @@ app.get('/bitbucket/get-token',async (req, res)=>{
 
 const gitHubBasis = "https://api.github.com";
 const gitLabBasis = "https://gitlab.com/api/v4";
+const bitbucketBasis = "https://api.bitbucket.org/2.0"
+
 
 app.get('/git/repositories', async (req,res)=>{
   const repoUrl = gitHubBasis + '/user/repos?per_page=10';
   console.log(repoUrl);
   axios.get(repoUrl,{
-    method: 'GET',
     headers:{
       'Authorization': 'Bearer '+process.env.GITHUB_TOKEN,
       'X-GitHub-Api-Version':'2022-11-28',
       'Accept': 'application/vnd.github+json'
     }
   }).then((response)=>{
-    console.log(response)
-    // this is a good way to send github data back within this enviroment. (node and axios). if you go with res.send or json.stringify 
-    // you get a circular reference error. https://github.com/axios/axios/issues/836
     res.json(response.data);
   }).catch((err)=>{
     console.log(err)
@@ -94,20 +92,54 @@ app.get('/gitlab/repositories', async (req,res)=>{
   const repoUrl = gitLabBasis + '/projects?owned=1&per_page=10';
   console.log(repoUrl);
   axios.get(repoUrl,{
-    method: 'GET',
     headers:{
       'Authorization': 'Bearer '+process.env.GITLAB_TOKEN,
       'Accept': 'application/json'
     }
   }).then((response)=>{
-    console.log(response)
-    // this is a good way to send github data back with axios. if you go with res.send or json.stringify 
-    // you get a circular reference error. https://github.com/axios/axios/issues/836
     res.json(response.data);
   }).catch((err)=>{
     console.log(err)
     res.send(err);
   }) 
+})
+
+app.get('/bitbucket/workspaces', async (req,res)=>{
+  const wsUrl = bitbucketBasis + '/user/permissions/workspaces';
+  let fileData = fs.readFileSync('./tokens.json');
+  fileData = JSON.parse(fileData);
+  const token = fileData.tokens.bitbucket.token;
+  axios.get(wsUrl,{
+    headers:{
+      'Authorization': 'Bearer '+token,
+      'Accept': 'application/json'
+    }
+  }).then((response) => {
+    res.json(response.data)
+  }).catch((error) => {
+    console.log(error);
+    res.send(error)
+  })
+})
+
+app.get('/bitbucket/repositories', async (req,res)=>{
+  const repoUrl = bitbucketBasis + '/repositories/'+req.query.ws;
+  let fileData = fs.readFileSync('./tokens.json');
+  fileData = JSON.parse(fileData);
+  const token = fileData.tokens.bitbucket.token;
+
+  axios.get(repoUrl,{
+    headers:{
+      'Authorization': 'Bearer '+token,
+      'Accept': 'application/json'
+    }
+  }).then((response) => {
+    res.json(response.data)
+  }).catch((error) => {
+    console.log(error);
+    res.send(error)
+  })
+
 })
 
 
