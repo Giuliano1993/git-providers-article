@@ -222,8 +222,8 @@ app.post('/gitlab/issue/:id/comment', (req, res) => {
 
   const issueId = req.params.id;
   const { commentBody, repoId } = req.body;
-  const createIssueUrl = gitLabBasis + `/projects/${repoId}/issues/${issueId}/notes`;
-  axios(createIssueUrl,{
+  const commentIssueUrl = gitLabBasis + `/projects/${repoId}/issues/${issueId}/notes`;
+  axios(commentIssueUrl,{
     method: 'post',
     headers:{
       'Authorization': 'Bearer '+process.env.GITLAB_TOKEN,
@@ -241,7 +241,62 @@ app.post('/gitlab/issue/:id/comment', (req, res) => {
 })
 
 
+app.post('/bitbucket/issue',(req, res)=>{
+  const {workspace, repo, issueTitle, issueContent}  = req.body;
+  const createIssueUrl = bitbucketBasis + `/repositories/${workspace}/${repo}/issues`
 
+  let fileData = fs.readFileSync('./tokens.json');
+  fileData = JSON.parse(fileData);
+  const token = fileData.tokens.bitbucket.token;
+
+  axios(createIssueUrl,{
+    method:'POST',
+    headers:{
+      'Authorization': 'Bearer '+token,
+      'Accept': 'application/json'
+    },
+    data:{
+      title: issueTitle,
+      content: {
+        raw: issueContent
+      }
+    }
+  }).then((response) => {
+    res.json(response.data)
+  }).catch((error) => {
+    console.log(error);
+    res.send(error)
+  })
+})
+
+
+app.post('/bitbucket/issue/:id/comment',(req, res)=>{
+  const issueId = req.params.id;
+  const {workspace, repo,  commentContent}  = req.body;
+  const createIssueUrl = bitbucketBasis + `/repositories/${workspace}/${repo}/issues/${issueId}/comments/`
+
+  let fileData = fs.readFileSync('./tokens.json');
+  fileData = JSON.parse(fileData);
+  const token = fileData.tokens.bitbucket.token;
+
+  axios(createIssueUrl,{
+    method:'POST',
+    headers:{
+      'Authorization': 'Bearer '+token,
+      'Accept': 'application/json'
+    },
+    data:{
+      content: {
+        raw: commentContent
+      }
+    }
+  }).then((response) => {
+    res.json(response.data)
+  }).catch((error) => {
+    console.log(error);
+    res.send(error)
+  })
+})
 
 
 
