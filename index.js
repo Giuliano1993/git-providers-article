@@ -71,8 +71,8 @@ const gitLabBasis = "https://gitlab.com/api/v4";
 const bitbucketBasis = "https://api.bitbucket.org/2.0"
 
 
-app.get('/git/repositories', async (req,res)=>{
-  const repoUrl = gitHubBasis + '/user/repos?per_page=10';
+app.get('/github/repositories', async (req,res)=>{
+  const repoUrl = gitHubBasis + '/user/repos?per_page=10&affiliation=owner';
   console.log(repoUrl);
   axios.get(repoUrl,{
     headers:{
@@ -141,6 +141,106 @@ app.get('/bitbucket/repositories', async (req,res)=>{
   })
 
 })
+
+
+app.post('/github/issue', (req, res) => {
+  const { owner, repo, issueTitle, issueText } = req.body;
+  const createIssueUrl = gitHubBasis + `/repos/${owner}/${repo}/issues`;
+  axios(createIssueUrl,{
+    method:'POST',
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Authorization': 'Bearer '+process.env.GITHUB_TOKEN,
+    },
+    data:{
+      owner: owner,
+      repo: repo,
+      title: issueTitle,
+      body: issueText
+    }
+  }).then((response) => {
+    res.json(response.data)
+  }).catch((error) => {
+    //console.error(error)
+    res.send(error)
+  })
+})
+
+app.post('/github/issue/:id', (req, res) => {
+  const id = req.params.id;
+  const { owner, repo, commentText } = req.body;
+  const commentIssueUrl = gitHubBasis + `/repos/${owner}/${repo}/issues/${id}/comments`;
+
+  axios(commentIssueUrl,{
+    method:'POST',
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Authorization': 'Bearer '+process.env.GITHUB_TOKEN,
+    },
+    data:{
+      owner: owner,
+      repo: repo,
+      body: commentText,
+      issue_number: id
+    }
+  }).then((response) => {
+    res.json(response.data)
+  }).catch((error) => {
+    //console.error(error)
+    res.send(error)
+  })
+})
+
+
+
+app.post('/gitlab/issue', (req, res) => {
+
+  const { issueTitle, issueDescription, repoId } = req.body;
+  const createIssueUrl = gitLabBasis + `/projects/${repoId}/issues`;
+  axios(createIssueUrl,{
+    method: 'post',
+    headers:{
+      'Authorization': 'Bearer '+process.env.GITLAB_TOKEN,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    data:{
+      title: issueTitle,
+      description: issueDescription
+    }
+  }).then((response)=>{
+    res.json(response.data)
+  }).catch((error)=>{
+    res.send(error)
+  })
+})
+
+
+app.post('/gitlab/issue/:id/comment', (req, res) => {
+
+  const issueId = req.params.id;
+  const { commentBody, repoId } = req.body;
+  const createIssueUrl = gitLabBasis + `/projects/${repoId}/issues/${issueId}/notes`;
+  axios(createIssueUrl,{
+    method: 'post',
+    headers:{
+      'Authorization': 'Bearer '+process.env.GITLAB_TOKEN,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    data:{
+      body: commentBody,
+    }
+  }).then((response)=>{
+    res.json(response.data)
+  }).catch((error)=>{
+    res.send(error)
+  })
+})
+
+
 
 
 
